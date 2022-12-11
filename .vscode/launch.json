@@ -1,0 +1,60 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug (OpenOCD)",
+            "request": "launch",
+            "type": "cortex-debug",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceFolder}/main.elf",
+            "preLaunchTask": "Build",
+
+
+            // --- server type openocd manually ---\\
+            // "servertype": "external",
+            // "gdbPath": "/usr/bin/arm-none-eabi-gdb",
+            // "gdbTarget": "localhost:3333",
+            // ------------------------------------//
+
+
+            // ------- server type openocd --------\\
+            "servertype": "openocd",
+            "device": "STM32F030C8T6",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32f0x.cfg"
+            ],
+            "searchDir": [
+                "/usr/share/openocd/scripts"
+            ],
+            // ------------------------------------//
+
+
+            // --------- server type qemu ---------\\
+            // "servertype": "qemu",
+            // "cpu": "cortex-m3",
+            // "machine": "lm3s6965evb",
+            // ------------------------------------//
+
+
+            // allows the display of the peripheral registers in VS Code
+            "svdFile": "svd/STM32F0x0.svd",
+
+            // GDB client settings
+            //
+            // "runToEntryPoint": "main",
+            // "preLaunchCommands": [
+            //     "monitor init",
+            //     "monitor reset init",
+            //     "monitor halt",
+            // ],
+            // "postRestartCommands": [
+            //     "break main",
+            //     "continue"
+            // ],
+        }
+    ]
+}
