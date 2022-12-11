@@ -20,6 +20,8 @@ A bare metal (register level) STM32F030C8T6/STM32F030 MCU program written in pur
 - test_dma: DMA memcpy
 - test_dma_interrupt: DMA with interrupt
 
+[Demo video](https://user-images.githubusercontent.com/394223/206933676-690afd04-e55e-4d69-a78a-0bce44c7054e.mp4)
+
 [Demo video](images/stm32f030.mp4)
 
 ## Wires
