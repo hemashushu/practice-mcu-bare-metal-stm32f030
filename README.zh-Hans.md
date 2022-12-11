@@ -1,20 +1,26 @@
-# 使用 Rust 编写微处理单元 (MCU）STM32F103C8T6 的 "裸机程序"
+# 使用 C 编写微处理单元 (MCU）STM32F030C8T6 的 "裸机程序"
 
 [EN](README.md) | [中文](README.zh-Hans.md)
 
 一个用纯 C 编写的微处理单元（MCU）STM32F030C8T6/STM32F030 的 "裸机程序"，不依赖任何 IDE、SDK、HAL 或者库，也不用汇编代码，唯一需要的是 GCC 编译器。通过直接读写硬件的寄存器的方式，实现基本的输入和输出、定时器、串口通信等功能。
 
+![stm32f030 bare-metal C](images/stm32f030.jpg)
+
 ## 例程
 
 - test_set_clock: PLL and SYSCLK
-- test_blink: GPIO output
-- test_button: GPIO input
+- test_blink: GPIO 输出
+- test_button: GPIO 输入
 - test_systick: SysTick
-- test_uart: UART communication
-- test_button_interrupt: GPIO interrupt
-- test_timer: general timer
-- test_timer_interrupt: general timer with interrupt
-- test_eeprom: I2C peripheral
+- test_uart: UART 通信
+- test_button_interrupt: GPIO 中断
+- test_timer: 定时器
+- test_timer_interrupt: 带中断的定时器
+- test_eeprom: I2C 外设
+- test_dma: DMA memcpy
+- test_dma_interrupt: 带中断的 DMA
+
+[演示视频](images/stm32f030.mp4)
 
 ## 连线
 
@@ -56,6 +62,8 @@
 
 - RM0360 Reference manual
   https://www.st.com/resource/en/reference_manual/rm0360-stm32f030x4x6x8xc-and-stm32f070x6xb-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
+
+  在章节 "AppendixA" 当中有一些简单的示例代码。
 
 - PM0215 Programming manual
   https://www.st.com/resource/en/programming_manual/pm0215-stm32f0xxx-cortexm0-programming-manual-stmicroelectronics.pdf

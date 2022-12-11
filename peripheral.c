@@ -12,6 +12,9 @@ extern uint32_t PCLK;   // PCLK, for APB peripherals, TIM, ADC, USART1
 
 extern uint64_t systicks;
 
+// for DMA memory test
+extern char mem_dest[16];
+
 void systick_init(uint32_t ticks)
 {
     // ticks:
@@ -135,6 +138,12 @@ void EXTI0_1_IRQHandler()
     uint8_t led_pin_number = get_pin_number(EXTERNAL_LED_PIN);
     uint8_t button_0_pin_number = get_pin_number(BUTTON_0_PIN);
 
+    // RM0360 11.3.6 Pending register (EXTI_PR)
+    // Bits 17:0 PIFx: Pending bit on line x (x = 17 to 0)
+    // 0: no trigger request occurred
+    // 1: selected trigger request occurred
+    // This bit is set when the selected edge event arrives on the external interrupt line. This bit is
+    // cleared by writing a 1 to the bit.
     if (EXTI->PR & (1 << button_0_pin_number))
     {
         // clear the EXTI status flag.
@@ -167,7 +176,7 @@ void timer_delay(TIM_TypeDef *TIMx, uint32_t prescaler, uint32_t ticks)
     // rm0360 14.4.6 TIM3 event generation register (TIM3_EGR)
     // UG: Update generation
     // This bit can be set by software, it is automatically cleared by hardware.
-    // 0: No action
+    // 0: No action
     // 1: Re-initialize the counter and generates an update of the registers.
     TIMx->EGR |= (TIM_EGR_UG);
 
@@ -229,6 +238,13 @@ void TIM3_IRQHandler()
     uint8_t led_pin_number = get_pin_number(EXTERNAL_LED_PIN);
 
     // handle a timer 'update' interrupt event
+
+    // RM0360 14.4.5 TIM3 status register (TIM3_SR)
+    // Bit 0 UIF: Update interrupt flag
+    // This bit is set by hardware on an update event. It is cleared by software.
+    // 0: No update occurred.
+    // 1: Update interrupt pending.
+    // This bit is set by hardware when the registers are updated:
     if (TIM3->SR & TIM_SR_UIF)
     {
         TIM3->SR &= ~(TIM_SR_UIF);
@@ -289,4 +305,27 @@ uint8_t i2c_read_byte()
     {
     }
     return (I2C1->RXDR & 0xFF);
+}
+
+void DMA1_Channel1_IRQHandler()
+{
+    // RM0360 10.4.1 DMA interrupt status register (DMA_ISR)
+    // check if channel 1 "TCIFx" (Channel x transfer complete flag)
+    if (DMA1->ISR & (1 << DMA_ISR_TCIF1))
+    {
+        // RM0360 10.4.2 DMA interrupt flag clear register (DMA_IFCR)
+        // clear channel 1 transfer complete interrupt
+        DMA1->IFCR |= (1 << DMA_IFCR_CTCIF1);
+
+        uart_write_str(USART1, "DMA1 transfer complete interrupt occured\r\n");
+
+        // print memory destination content
+        uart_write_str(USART1, "memory dest NEW data: ");
+        for (int i = 0; i < 16; i++)
+        {
+            uart_write_int(USART1, mem_dest[i]);
+            uart_write_str(USART1, ",");
+        }
+        uart_write_str(USART1, "\r\n");
+    }
 }

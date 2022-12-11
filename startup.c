@@ -4,6 +4,7 @@ extern void NMI_Handler();
 extern void HardFault_Handler();
 extern void SysTick_Handler();
 extern void EXTI0_1_IRQHandler();
+extern void DMA1_Channel1_IRQHandler();
 extern void TIM3_IRQHandler();
 
 extern void main();
@@ -55,40 +56,38 @@ __attribute__((naked, noreturn)) void Reset_Handler()
 // `STM32Cube/Repository/STM32Cube_FW_F0_V1.11.3/Drivers/CMSIS/Device/ST/STM32F0xx/Source/Templates/gcc/startup_stm32f030x8.s`
 __attribute__((section(".vector_table.exceptions"))) void (*Exceptions[46])() = {
     // &_estack,        // idx: 0 the initial stack pointer
-    Reset_Handler,      // idx: 1 the address of the entry function
-    NMI_Handler,        // idx: 2
-    HardFault_Handler,  // idx: 3
-    0,                  // idx: 4
-    0,                  // idx: 5
-    0,                  // idx: 6
-    0,                  // idx: 7
-    0,                  // idx: 8
-    0,                  // idx: 9
-    0,                  // idx: 10
-    0,                  // idx: 11 SVC_Handler
-    0,                  // idx: 12
-    0,                  // idx: 13
-    0,                  // idx: 14 PendSV_Handler
-    SysTick_Handler,    // idx: 15 Systick
-
-    0,                  // idx: 16
-    0,
-    0,
-    0,
-    0,
-    EXTI0_1_IRQHandler, // idx: 21
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-
-    TIM3_IRQHandler,    // idx: 32
+    Reset_Handler,            // idx: 1 the address of the entry function
+    NMI_Handler,              // idx: 2
+    HardFault_Handler,        // idx: 3
+    0,                        // idx: 4
+    0,                        // idx: 5
+    0,                        // idx: 6
+    0,                        // idx: 7
+    0,                        // idx: 8
+    0,                        // idx: 9
+    0,                        // idx: 10
+    0,                        // idx: 11 SVC_Handler
+    0,                        // idx: 12
+    0,                        // idx: 13
+    0,                        // idx: 14 PendSV_Handler
+    SysTick_Handler,          // idx: 15 Systick
+    0,                        // idx: 16
+    0,                        // idx: 17
+    0,                        // idx: 18
+    0,                        // idx: 19
+    0,                        // idx: 20
+    EXTI0_1_IRQHandler,       // idx: 21
+    0,                        // idx: 22
+    0,                        // idx: 23
+    0,                        // idx: 24
+    DMA1_Channel1_IRQHandler, // idx: 25
+    0,                        // idx: 26
+    0,                        // idx: 27
+    0,                        // idx: 28
+    0,                        // idx: 29
+    0,                        // idx: 30
+    0,                        // idx: 31
+    TIM3_IRQHandler,          // idx: 32
 };
 
 __attribute__((naked, noreturn)) void Default_Handler()

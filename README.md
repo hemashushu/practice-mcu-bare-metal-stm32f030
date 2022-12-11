@@ -4,6 +4,8 @@
 
 A bare metal (register level) STM32F030C8T6/STM32F030 MCU program written in pure C without any IDE, SDK, HAL or library, the only tool required is the GCC compiler.Implement basic input and output, timer, serial communication, etc. by directly reading and writing registers of hardware.
 
+![stm32f030 bare-metal C](images/stm32f030.jpg)
+
 ## Routines
 
 - test_set_clock: PLL and SYSCLK
@@ -15,6 +17,10 @@ A bare metal (register level) STM32F030C8T6/STM32F030 MCU program written in pur
 - test_timer: general timer
 - test_timer_interrupt: general timer with interrupt
 - test_eeprom: I2C peripheral
+- test_dma: DMA memcpy
+- test_dma_interrupt: DMA with interrupt
+
+[Demo video](images/stm32f030.mp4)
 
 ## Wires
 
@@ -56,6 +62,8 @@ Hardware description and register structure and value description documentations
 
 - RM0360 Reference manual
   https://www.st.com/resource/en/reference_manual/rm0360-stm32f030x4x6x8xc-and-stm32f070x6xb-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
+
+  checkout section "AppendixA" for some code examples.
 
 - PM0215 Programming manual
   https://www.st.com/resource/en/programming_manual/pm0215-stm32f0xxx-cortexm0-programming-manual-stmicroelectronics.pdf

@@ -15,6 +15,8 @@ void test_button_interrupt();
 void test_timer();
 void test_timer_interrupt();
 void test_eeprom();
+void test_dma();
+void test_dma_interrupt();
 
 uint32_t SYSCLK = 8000000; // SYSCLK
 uint32_t HCLK = 8000000;   // HCLK, for AHB, core, memory and DMA
@@ -22,10 +24,10 @@ uint32_t PCLK = 8000000;   // PCLK, for APB peripherals, TIM, ADC, USART1
 
 volatile uint64_t systicks = 0; // the current/total ticks
 
-// for memory test
-uint8_t *mem_zero = 0;
-char *mem_hello = "hello";
-char *mem_foobar = "foobar";
+// for DMA memory test
+#define MEM_TEST_LEN 16
+char mem_src[MEM_TEST_LEN];
+char mem_dest[MEM_TEST_LEN];
 
 int main()
 {
@@ -33,13 +35,15 @@ int main()
     // test_blink();            // Test A
     // test_button();           // Test B
     // test_systick();          // Test C
-    // test_uart();             // Test D
+    test_uart();             // Test D
     // test_button_interrupt(); // Test E
     // test_timer();            // Test F
-    test_timer_interrupt(); // Test G
+    // test_timer_interrupt();  // Test G
     // test_eeprom();           // Test H
+    // test_dma();              // Test I
+    // test_dma_interrupt();    // Test J
 
-    // ! Only one of the test (A,B,...,H) can be selected at a time.
+    // ! Only one of the test (A,B,...,J) can be selected at a time.
     // ! `test_set_clock` can be combined with other test.
 
     while (1)
@@ -158,20 +162,27 @@ void test_set_clock()
     PCLK = SYSCLK;
 }
 
-void test_systick()
+void setup_builtin_led_for_blink()
 {
-    // set tick every 1 ms
-    systick_init_with_millisecond();
-
     // enable the GPIOx peripheral (clock)
     RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
 
+    // set builtin LED to output mode
     // initialize the builtin LED pin
     uint8_t led_pin_number = get_pin_number(BUILTIN_LED_PIN);
     GPIOC->MODER &= ~(0x3 << (led_pin_number * 2));   // clear bits
     GPIOC->MODER |= (0x1 << (led_pin_number * 2));    // set bits to 0x01, `output` mode
     GPIOC->OSPEEDR &= ~(0x3 << (led_pin_number * 2)); // clear bits, set speed to `low`
     GPIOC->OTYPER &= ~(1 << led_pin_number);          // clear bits, set output type to `push-pull`
+}
+
+void test_systick()
+{
+    // set tick every 1 ms
+    systick_init_with_millisecond();
+
+    setup_builtin_led_for_blink();
+    uint8_t led_pin_number = get_pin_number(BUILTIN_LED_PIN);
 
     while (1)
     {
@@ -361,15 +372,8 @@ void test_button_interrupt()
 
 void test_timer()
 {
-    // enable the GPIOx peripheral (clock)
-    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-
-    // initialize the builtin LED pin
+    setup_builtin_led_for_blink();
     uint8_t led_pin_number = get_pin_number(BUILTIN_LED_PIN);
-    GPIOC->MODER &= ~(0x3 << (led_pin_number * 2));   // clear bits
-    GPIOC->MODER |= (0x1 << (led_pin_number * 2));    // set bits to 0x01, `output` mode
-    GPIOC->OSPEEDR &= ~(0x3 << (led_pin_number * 2)); // clear bits, set speed to `low`
-    GPIOC->OTYPER &= ~(1 << led_pin_number);          // clear bits, set output type to `push-pull`
 
     // enable the TIM3 clock.
     RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
@@ -434,8 +438,47 @@ void test_timer_interrupt()
     }
 }
 
+void setup_uart1_for_printing()
+{
+    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+
+    uint8_t tx_pin_number = get_pin_number(TX_PIN);
+    uint8_t rx_pin_number = get_pin_number(RX_PIN);
+
+    GPIOA->AFR[tx_pin_number / 8] &= ~(0xF << ((tx_pin_number % 8) * 4));
+    GPIOA->AFR[tx_pin_number / 8] |= (0x1 << ((tx_pin_number % 8) * 4));
+    GPIOA->AFR[rx_pin_number / 8] &= ~(0xF << ((rx_pin_number % 8) * 4));
+    GPIOA->AFR[rx_pin_number / 8] |= (0x1 << ((rx_pin_number % 8) * 4));
+
+    // TX (PA9) pin is configured as output mode, push-pull
+    GPIOA->MODER &= ~(0x3 << (tx_pin_number * 2));   // clear bits
+    GPIOA->MODER |= (0x2 << (tx_pin_number * 2));    // set bits to 0b10, `Alternate function mode`
+    GPIOA->OSPEEDR &= ~(0x3 << (tx_pin_number * 2)); // clear bits, set speed to `low`
+    GPIOA->OTYPER &= ~(1 << tx_pin_number);          // clear bits, set output type to `push-pull`
+
+    // RX (PA10) pin is configured as input mode and floating.
+    GPIOA->MODER &= ~(0x3 << (rx_pin_number * 2)); // clear bits, set to `input` mode
+    GPIOA->MODER |= (0x2 << (rx_pin_number * 2));  // set bits to 0b10, `Alternate function mode`
+    GPIOA->PUPDR &= ~(0x3 << (rx_pin_number * 2)); // clear bits, set to `No pull-up, pull-down`
+
+    RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+
+    // set UART baud rate to 115200.
+    uint32_t baudrate = 115200;
+
+    uint32_t clock = PCLK;
+
+    uint32_t baud = (clock + baudrate / 2) / baudrate;
+    USART1->BRR = baud;
+    USART1->CR1 = USART_CR1_TE | // Transmitter enable
+                  USART_CR1_RE | // Receiver enable
+                  USART_CR1_UE;  // USART enable
+}
+
 void test_eeprom()
 {
+    setup_uart1_for_printing();
+
     // enable the GPIOx peripheral
     RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
 
@@ -489,44 +532,6 @@ void test_eeprom()
     // enable the peripheral
     I2C1->CR1 |= I2C_CR1_PE;
 
-    // ------------- START. setup UART for printing EEPROM data content -----------
-
-    RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
-
-    uint8_t tx_pin_number = get_pin_number(TX_PIN);
-    uint8_t rx_pin_number = get_pin_number(RX_PIN);
-
-    GPIOA->AFR[tx_pin_number / 8] &= ~(0xF << ((tx_pin_number % 8) * 4));
-    GPIOA->AFR[tx_pin_number / 8] |= (0x1 << ((tx_pin_number % 8) * 4));
-    GPIOA->AFR[rx_pin_number / 8] &= ~(0xF << ((rx_pin_number % 8) * 4));
-    GPIOA->AFR[rx_pin_number / 8] |= (0x1 << ((rx_pin_number % 8) * 4));
-
-    // TX (PA9) pin is configured as output mode, push-pull
-    GPIOA->MODER &= ~(0x3 << (tx_pin_number * 2));   // clear bits
-    GPIOA->MODER |= (0x2 << (tx_pin_number * 2));    // set bits to 0b10, `Alternate function mode`
-    GPIOA->OSPEEDR &= ~(0x3 << (tx_pin_number * 2)); // clear bits, set speed to `low`
-    GPIOA->OTYPER &= ~(1 << tx_pin_number);          // clear bits, set output type to `push-pull`
-
-    // RX (PA10) pin is configured as input mode and floating.
-    GPIOA->MODER &= ~(0x3 << (rx_pin_number * 2)); // clear bits, set to `input` mode
-    GPIOA->MODER |= (0x2 << (rx_pin_number * 2));  // set bits to 0b10, `Alternate function mode`
-    GPIOA->PUPDR &= ~(0x3 << (rx_pin_number * 2)); // clear bits, set to `No pull-up, pull-down`
-
-    RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
-
-    // set UART baud rate to 115200.
-    uint32_t baudrate = 115200;
-
-    uint32_t clock = PCLK;
-
-    uint32_t baud = (clock + baudrate / 2) / baudrate;
-    USART1->BRR = baud;
-    USART1->CR1 = USART_CR1_TE | // Transmitter enable
-                  USART_CR1_RE | // Receiver enable
-                  USART_CR1_UE;  // USART enable
-
-    // ------------- END. setup UART for printing EEPROM data content -----------
-
     // ============= read the first 4 bytes of EEPROM data.
 
     unsigned char data[4] = {
@@ -561,7 +566,7 @@ void test_eeprom()
     i2c_stop();
 
     // print data content
-    uart_write_str(USART1, "the EEPROM data (at 0x000000): ");
+    uart_write_str(USART1, "EEPROM data (at 0x000000): ");
     for (uint8_t idx = 0; idx < 4; idx++)
     {
         uart_write_int(USART1, data[idx]);
@@ -591,4 +596,204 @@ void test_eeprom()
     i2c_stop();
 
     uart_write_str(USART1, "EEPROM data updated.\r\n");
+    uart_write_str(USART1, "Press [Reset] button on the MCU to checkout the updated value.\r\n");
+}
+
+void test_dma()
+{
+    setup_uart1_for_printing();
+
+    // initialize `mem_src` with `0..15`
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        mem_src[i] = i;
+    }
+
+    // print memory source content
+    uart_write_str(USART1, "memory source addr: ");
+    uart_write_int(USART1, mem_src);
+    uart_write_str(USART1, ", data: ");
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        uart_write_int(USART1, mem_src[i]);
+        uart_write_str(USART1, ",");
+    }
+    uart_write_str(USART1, "\r\n");
+
+    // print memory destination content
+    uart_write_str(USART1, "memory dest addr: ");
+    uart_write_int(USART1, mem_dest);
+    uart_write_str(USART1, ", data: ");
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        uart_write_int(USART1, mem_dest[i]);
+        uart_write_str(USART1, ",");
+    }
+    uart_write_str(USART1, "\r\n");
+
+    // setup DMA ===============
+
+    // enable DMA clock
+    RCC->AHBENR |= RCC_AHBENR_DMAEN;
+
+    // RM0360 10.4.3 DMA channel x configuration register (DMA_CCRx)
+
+    // disable DMA1 first
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
+
+    DMA1_Channel1->CCR |= DMA_CCR_MEM2MEM; // memory-to-memory
+    DMA1_Channel1->CCR &= ~DMA_CCR_CIRC;   // no circular/loop
+
+    DMA1_Channel1->CCR &= ~DMA_CCR_MSIZE;
+    DMA1_Channel1->CCR |= (0 << DMA_CCR_MSIZE_Pos); // memory size: 8 bits
+
+    DMA1_Channel1->CCR &= ~DMA_CCR_PSIZE;
+    DMA1_Channel1->CCR |= (0 << DMA_CCR_PSIZE_Pos); // peripheral size: 8 bits
+
+    DMA1_Channel1->CCR |= DMA_CCR_MINC; // enable memory increment mode
+    DMA1_Channel1->CCR |= DMA_CCR_PINC; // enable peripheral increment mode
+
+    // RM0360 10.4.3 DMA channel x configuration register (DMA_CCRx)
+    //
+    // Bit 4 DIR: Data transfer direction
+    // This bit is set and cleared by software.
+    // 0: Read from peripheral
+    // 1: Read from memory
+    DMA1_Channel1->CCR |= DMA_CCR_DIR; // memory -> peripheral
+
+    DMA1_Channel1->CMAR = mem_src;  // memory address (source address)
+    DMA1_Channel1->CPAR = mem_dest; // peripheral address (destination address)
+
+    // RM0360 10.4.4 DMA channel x number of data register
+    DMA1_Channel1->CNDTR = MEM_TEST_LEN; // number of data to transfer
+
+    // enable DMA1
+    DMA1_Channel1->CCR |= DMA_CCR_EN;
+
+    // wait for DMA1 complete
+    // CNDTR will decrease until it reaches 0.
+    while (DMA1_Channel1->CNDTR)
+    {
+        //
+    }
+
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
+
+    uart_write_str(USART1, "DMA1 transfer complete.\r\n");
+
+    // print memory destination content
+    uart_write_str(USART1, "memory dest NEW data: ");
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        uart_write_int(USART1, mem_dest[i]);
+        uart_write_str(USART1, ",");
+    }
+    uart_write_str(USART1, "\r\n");
+}
+
+void test_dma_interrupt()
+{
+    systick_init_with_millisecond();
+    setup_builtin_led_for_blink();
+    uint8_t led_pin_number = get_pin_number(BUILTIN_LED_PIN);
+
+    setup_uart1_for_printing();
+
+    // initialize `mem_src` with `0..15`
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        mem_src[i] = i;
+    }
+
+    // print memory source content
+    uart_write_str(USART1, "memory source addr: ");
+    uart_write_int(USART1, mem_src);
+    uart_write_str(USART1, ", data: ");
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        uart_write_int(USART1, mem_src[i]);
+        uart_write_str(USART1, ",");
+    }
+    uart_write_str(USART1, "\r\n");
+
+    // print memory destination content
+    uart_write_str(USART1, "memory dest addr: ");
+    uart_write_int(USART1, mem_dest);
+    uart_write_str(USART1, ", data: ");
+    for (int i = 0; i < MEM_TEST_LEN; i++)
+    {
+        uart_write_int(USART1, mem_dest[i]);
+        uart_write_str(USART1, ",");
+    }
+    uart_write_str(USART1, "\r\n");
+
+    // setup DMA ===============
+
+    // enable DMA clock
+    RCC->AHBENR |= RCC_AHBENR_DMAEN;
+
+    // RM0360 10.4.3 DMA channel x configuration register (DMA_CCRx)
+
+    // disable DMA1 first
+    DMA1_Channel1->CCR &= ~DMA_CCR_EN;
+
+    DMA1_Channel1->CCR |= DMA_CCR_MEM2MEM; // memory-to-memory
+    DMA1_Channel1->CCR &= ~DMA_CCR_CIRC;   // no circular/loop
+
+    DMA1_Channel1->CCR &= ~DMA_CCR_MSIZE;
+    DMA1_Channel1->CCR |= (0 << DMA_CCR_MSIZE_Pos); // memory size: 8 bits
+
+    DMA1_Channel1->CCR &= ~DMA_CCR_PSIZE;
+    DMA1_Channel1->CCR |= (0 << DMA_CCR_PSIZE_Pos); // peripheral size: 8 bits
+
+    DMA1_Channel1->CCR |= DMA_CCR_MINC; // enable memory increment mode
+    DMA1_Channel1->CCR |= DMA_CCR_PINC; // enable peripheral increment mode
+
+    // RM0360 10.4.3 DMA channel x configuration register (DMA_CCRx)
+    //
+    // Bit 4 DIR: Data transfer direction
+    // This bit is set and cleared by software.
+    // 0: Read from peripheral
+    // 1: Read from memory
+    DMA1_Channel1->CCR |= DMA_CCR_DIR; // memory -> peripheral
+
+    DMA1_Channel1->CMAR = mem_src;  // memory address (source address)
+    DMA1_Channel1->CPAR = mem_dest; // peripheral address (destination address)
+
+    // RM0360 10.4.4 DMA channel x number of data register
+    DMA1_Channel1->CNDTR = MEM_TEST_LEN; // number of data to transfer
+
+    // RM0360 10.4.3 DMA channel x configuration register (DMA_CCRx)
+    //
+    // Bit 1 TCIE: Transfer complete interrupt enable
+    // This bit is set and cleared by software.
+    // 0: TC interrupt disabled
+    // 1: TC interrupt enabled
+    DMA1_Channel1->CCR |= DMA_CCR_TCIE; // enable
+
+    // Bits 13:12 PL[1:0]: Channel priority level
+    // These bits are set and cleared by software.
+    // 00: Low
+    // 01: Medium
+    // 10: High
+    // 11: Very high
+    DMA1_Channel1->CCR &= ~DMA_CCR_PL;
+    DMA1_Channel1->CCR |= 1 << DMA_CCR_PL_Pos; // set Channel priority level to 1
+
+    // enable the NVIC interrupt for DMA1_Channel1
+    NVIC_SetPriority(DMA1_Channel1_IRQn, 0x03); // optional
+    NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+    // enable DMA1
+    DMA1_Channel1->CCR |= DMA_CCR_EN;
+
+    while (1)
+    {
+        // turn on builtin LED
+        GPIOC->ODR &= ~(1 << led_pin_number); // set `0` to turn on builtin LED
+        systick_delay(500);
+
+        GPIOC->ODR |= (1 << led_pin_number); // set `1` to turn off builtin LED
+        systick_delay(500);
+    }
 }
