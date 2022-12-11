@@ -20,6 +20,8 @@
 - test_dma: DMA memcpy
 - test_dma_interrupt: 带中断的 DMA
 
+[演示视频](https://user-images.githubusercontent.com/394223/206933676-690afd04-e55e-4d69-a78a-0bce44c7054e.mp4)
+
 [演示视频](images/stm32f030.mp4)
 
 ## 连线
