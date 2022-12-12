@@ -78,6 +78,7 @@ Thanks:
 - https://github.com/fcayci/stm32f4-bare-metal
 - https://github.com/getoffmyhack/STM32F103-Bare-Metal
 - https://github.com/ataradov/mcu-starter-projects
+- https://jbvalle.github.io/stm32_series.html
 
 ## Rust language version
 

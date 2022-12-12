@@ -15,6 +15,13 @@ MEMORY
  * the keyword `PROVIDE` means:
  * set LHS = RHS only when the left symbol does not exists,
  * i.e. the RHS is the default value.
+ *
+ * it can also define handlers in `startup.c`, and remove all `PROVIDE(*_Handler = Default_Handler)` in linker.ld, e.g.
+ *
+ * ```c
+ * void NMI_Handler() __attribute__((weak, alias("Default_Handler")));
+ * void HardFault_Handler() __attribute__((weak, alias("Default_Handler")));
+ * ```
  */
 
 /* ------ index 0-15 ------ */
