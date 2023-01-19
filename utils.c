@@ -36,9 +36,10 @@ void itoa(int num, char *buf, int buf_len)
         }
     }
 
-    int count = idx + 1;
-    if (count < buf_len)
-    {
+    int count = buf_len;
+
+    if (idx < buf_len - 1) {
+        count = idx + 1;
         buf[count] = '\0';
     }
 

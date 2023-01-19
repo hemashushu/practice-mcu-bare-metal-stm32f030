@@ -35,8 +35,8 @@ int main()
     // test_blink();            // Test A
     // test_button();           // Test B
     // test_systick();          // Test C
-    test_uart();             // Test D
-    // test_button_interrupt(); // Test E
+    // test_uart();             // Test D
+    test_button_interrupt(); // Test E
     // test_timer();            // Test F
     // test_timer_interrupt();  // Test G
     // test_eeprom();           // Test H
@@ -66,10 +66,6 @@ void test_blink()
 
     while (1)
     {
-        for (int i = 0; i < 200000; i++)
-        {
-        }
-
         // clear the bit of `output data register`, i.e. set the
         // bit to `0`
         //
@@ -81,7 +77,13 @@ void test_blink()
         for (int i = 0; i < 200000; i++)
         {
         }
+
         GPIOC->ODR |= (1 << led_pin_number); // set `1` to turn off builtin LED
+
+        for (int i = 0; i < 200000; i++)
+        {
+        }
+
     }
 }
 

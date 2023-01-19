@@ -1,18 +1,26 @@
-# About SVD
+## About SVD
 
 ARM defines an SVD (System View Description) file format in its CMSIS standard as a means for Cortex-M-based chip manufacturers to provide a common description of peripherals, registers, and register fields.
+
+## About PyCortexMDebug
 
 You can easily view the values of the peripheral registers in GDB using PyCortexMDebug (although you can also view the registers directly by viewing the memory).
 
 ## Install
 
-1. install PyCortexMDebug
-   download source from [https://github.com/bnahill/PyCortexMDebug], and change into the source directory and run `$ python setup.py install --user`.
+1. install PyCortexMDebug:
 
-2. copy `PyCortexMDebug/scripts/gdb.py` to your project folder.
-   
-3. get the SVD file for your MCU
-   download from [https://github.com/posborne/cmsis-svd] or st.com product document page [section System View Description](https://www.st.com/en/microcontrollers-microprocessors/stm32f030c8.html).
+   download source code from [https://github.com/bnahill/PyCortexMDebug] into any folder, and change into the source directory then run:
+
+   `$ python setup.py install --user`.
+
+2. copy `PyCortexMDebug/scripts/gdb.py` into your project folder.
+
+3. get the SVD file for your MCU, download from:
+
+   - https://github.com/posborne/cmsis-svd
+   - st.com product document page, e.g. [section System View Description](https://www.st.com/en/microcontrollers-microprocessors/stm32f030c8.html).
+   - https://developer.arm.com/tools-and-software/embedded/cmsis
 
 ## Load
 
